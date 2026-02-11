@@ -1,57 +1,59 @@
 #!/bin/bash
 
-# Dừng script ngay lập tức nếu có lỗi xảy ra
+# Dừng script nếu có lỗi
 set -e
 
-# --- CẤU HÌNH BIẾN ---
+# --- BIẾN CẤU HÌNH ---
 APP_NAME="ApiGateway"
 URL="https://raw.githubusercontent.com/davidngo1704/script/HEAD/SourceCode"
-TEMP_BIN="/root/SourceCode"
+TEMP_BIN="/root/SourceCode_temp"
 INSTALL_DIR="/usr/local/bin/$APP_NAME"
 INSTALL_BIN="$INSTALL_DIR/SourceCode"
 SERVICE_FILE="/etc/systemd/system/$APP_NAME.service"
 DATA_DIR="/var/lib/$APP_NAME"
 LOG_DIR="/var/log/$APP_NAME"
 
-# 1. CẬP NHẬT HỆ THỐNG & CÀI ĐẶT CÔNG CỤ
-echo "--- 1. Đang cập nhật hệ thống và cài đặt SSH, Curl, Git ---"
-sudo apt update -y
-sudo apt install openssh-server curl git -y
+echo "--- BẮT ĐẦU QUÁ TRÌNH THIẾT LẬP HỆ THỐNG ---"
 
-# 2. CẤU HÌNH SSH (Cho phép đăng nhập root và password)
-echo "--- 2. Đang cấu hình SSH ---"
+# 1. Cấu hình Múi giờ Việt Nam
+echo "--- Thiết lập múi giờ Asia/Ho_Chi_Minh ---"
+sudo timedatectl set-timezone Asia/Ho_Chi_Minh
+
+# 2. Cập nhật và Cài đặt công cụ
+echo "--- Cập nhật gói và cài đặt SSH, Curl, Git, Certificates ---"
+sudo apt update -y
+sudo apt install -y openssh-server curl git ca-certificates ufw
+
+# 3. Cấu hình SSH & User
+echo "--- Cấu hình SSH và Password root ---"
 sudo sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
 sudo sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
-
-# Đặt mật khẩu cho root
 echo "root:dai17041998" | sudo chpasswd
+sudo systemctl enable --now ssh
 
-# Khởi động lại dịch vụ SSH
-sudo systemctl enable ssh
-sudo systemctl restart ssh || sudo systemctl restart sshd
+# 4. Cấu hình Tường lửa (UFW)
+echo "--- Cấu hình tường lửa: Mở port 22 (SSH) ---"
+sudo ufw allow 22/tcp
+# sudo ufw allow 80/tcp # Mở port web nếu cần
+# sudo ufw allow 443/tcp
+sudo ufw --force enable
 
-# 3. TẢI FILE SOURCE CODE
-echo "--- 3. Đang tải file SourceCode từ GitHub ---"
-curl -L $URL -o $TEMP_BIN
-chmod +x $TEMP_BIN
+# 5. Tải và Cài đặt SourceCode
+echo "--- Tải SourceCode từ GitHub ---"
+sudo curl -L $URL -o $TEMP_BIN
+sudo chmod +x $TEMP_BIN
 
-# 4. THIẾT LẬP MÔI TRƯỜNG VÀ DỊCH VỤ (TỪ CREATE_API_GATEWAY)
-echo "--- 4. Đang cài đặt dịch vụ $APP_NAME ---"
-
-# Tạo thư mục hệ thống
+# Tạo thư mục và di chuyển file
 sudo mkdir -p "$DATA_DIR" "$LOG_DIR" "$INSTALL_DIR"
+sudo mv "$TEMP_BIN" "$INSTALL_BIN"
 
-# Copy binary vào nơi cài đặt chính thức
-sudo cp "$TEMP_BIN" "$INSTALL_BIN"
-sudo chmod +x "$INSTALL_BIN"
-
-# Phân quyền (Giữ 777 theo yêu cầu ban đầu của bạn cho data dir)
-sudo chown -R root:root "$INSTALL_DIR"
-sudo chown -R root:root "$DATA_DIR" "$LOG_DIR"
+# Phân quyền
 sudo chmod -R 777 "$DATA_DIR"
+sudo chown -R root:root "$INSTALL_DIR"
+sudo chown -R root:root "$LOG_DIR"
 
-# 5. TẠO FILE SYSTEMD SERVICE
-echo "--- 5. Đang cấu hình Systemd Service ---"
+# 6. Tạo và Chạy Systemd Service
+echo "--- Thiết lập Systemd Service ---"
 sudo tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
 Description=$APP_NAME Service
@@ -72,15 +74,11 @@ StandardError=append:$LOG_DIR/error.log
 WantedBy=multi-user.target
 EOF
 
-# 6. KÍCH HOẠT VÀ CHẠY SERVICE
-echo "--- 6. Khởi chạy dịch vụ ---"
 sudo systemctl daemon-reload
-sudo systemctl enable "$APP_NAME.service"
-sudo systemctl start "$APP_NAME.service"
+sudo systemctl enable --now "$APP_NAME.service"
 
 echo "----------------------------------------------------"
-echo "HOÀN TẤT CÀI ĐẶT!"
-echo "- SSH: Đã mở (Root login: yes, Pass: dai17041998)"
-echo "- Service: $APP_NAME đang chạy."
-echo "- Log: $LOG_DIR/output.log"
+echo "TẤT CẢ ĐÃ SẴN SÀNG!"
+echo "IP của bạn là: $(hostname -I | awk '{print $1}')"
+echo "Bạn có thể SSH bằng: root / dai17041998"
 echo "----------------------------------------------------"
