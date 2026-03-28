@@ -34,6 +34,7 @@ sudo systemctl enable --now ssh
 # 4. Cấu hình Tường lửa (UFW)
 echo "--- Cấu hình tường lửa: Mở port 22 (SSH) ---"
 sudo ufw allow 22/tcp
+sudo ufw allow 1704/tcp
 # sudo ufw allow 80/tcp # Mở port web nếu cần
 # sudo ufw allow 443/tcp
 sudo ufw --force enable
