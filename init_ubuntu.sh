@@ -22,6 +22,9 @@ sudo timedatectl set-timezone Asia/Ho_Chi_Minh
 # 2. Cập nhật và Cài đặt công cụ
 echo "--- Cập nhật gói và cài đặt SSH, Curl, Git, Certificates ---"
 sudo apt update -y
+
+sudo apt install curl
+
 sudo apt install -y openssh-server curl git ca-certificates ufw
 
 # 3. Cấu hình SSH & User
@@ -35,8 +38,8 @@ sudo systemctl enable --now ssh
 echo "--- Cấu hình tường lửa: Mở port 22 (SSH) ---"
 sudo ufw allow 22/tcp
 sudo ufw allow 1704/tcp
-# sudo ufw allow 80/tcp # Mở port web nếu cần
-# sudo ufw allow 443/tcp
+sudo ufw allow 80/tcp # Mở port web nếu cần
+sudo ufw allow 443/tcp
 sudo ufw --force enable
 
 # 5. Tải và Cài đặt SourceCode
