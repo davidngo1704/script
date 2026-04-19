@@ -40,6 +40,9 @@ sudo ufw allow 22/tcp
 sudo ufw allow 1704/tcp
 sudo ufw allow 80/tcp # Mở port web nếu cần
 sudo ufw allow 443/tcp
+sudo ufw allow 5432/tcp
+sudo ufw allow 5672/tcp
+sudo ufw allow 15672/tcp
 sudo ufw --force enable
 
 # 5. Tải và Cài đặt SourceCode
